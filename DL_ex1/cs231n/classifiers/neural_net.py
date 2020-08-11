@@ -72,7 +72,7 @@ class TwoLayerNet(object):
         N, D = X.shape
 
         # Compute the forward pass
-        scores = None
+        
         #############################################################################
         # TODO: Perform the forward pass, computing the class scores for the input. #
         # Store the result in the scores variable, which should be an array of      #
@@ -80,8 +80,10 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
-
+        temp = X.dot(W1) + b1
+        h = np.maximum(temp,0) #relu
+        scores = h.dot(W2) + b2
+        
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         # If the targets are not given then jump out, we're done
@@ -98,7 +100,16 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        exp_scores = np.exp(scores)
+        prob_scores = exp_scores/np.sum(exp_scores, axis=1).reshape(N,1)
+        
+        def comp_loss_for_example(i):  
+            return -np.log(prob_scores[i,y[i]])
+
+        f = np.vectorize(comp_loss_for_example)
+        loss = np.sum(f(np.arange(N)))
+        loss /= N
+        loss += reg * (np.sum(W1**2) + np.sum(W2**2))
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -111,8 +122,13 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
-
+        prob_scores[np.arange(N),y] -= 1 #grad of softmax
+        prob_scores /= N
+        grads['W2'] = (h.T).dot(prob_scores) +2 * reg * W2
+        grads['b2'] = np.sum(prob_scores, axis=0) 
+        dh = prob_scores.dot(W2.T) * (temp > 0)
+        grads['W1'] = (X.T).dot(dh) + 2 * reg * W1
+        grads['b1'] = np.sum(dh, axis=0)
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         return loss, grads
@@ -156,7 +172,9 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            batch_idx = np.random.randint(num_train, size=batch_size)
+            X_batch = X[batch_idx]
+            y_batch = y[batch_idx]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -172,7 +190,10 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            self.params['W1'] = self.params['W1'] - learning_rate * grads['W1']
+            self.params['b1'] = self.params['b1'] - learning_rate * grads['b1']
+            self.params['W2'] = self.params['W2'] - learning_rate * grads['W2']
+            self.params['b2'] = self.params['b2'] - learning_rate * grads['b2']
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -218,7 +239,10 @@ class TwoLayerNet(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        scores = self.loss(X)
+        exp_scores = np.exp(scores)
+        prob_scores = exp_scores/np.sum(exp_scores, axis=1).reshape(X.shape[0],1)
+        y_pred = np.argmax(prob_scores, axis=1)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
